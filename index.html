@@ -3202,7 +3202,7 @@ async function startCamera(){
     if(stream) stopCamera();
 
     stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'},width:{ideal:960},height:{ideal:540}},
+      video:{facingMode:{ideal:'user'},width:{ideal:960},height:{ideal:540}},
       audio:false
     });
     video.srcObject=stream;
