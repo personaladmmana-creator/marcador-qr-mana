@@ -3096,6 +3096,301 @@ video{
 }
 </style>
 
+
+<style id="mana-tablet-fit-final">
+/* ==========================================================
+   AJUSTE SOLO PARA TABLET / PANTALLAS CON POCO ALTO ÚTIL
+   No modifica laptop ni lógica del marcador
+   ========================================================== */
+
+@media (min-width: 821px) and (max-height: 760px){
+  html,body{
+    height:100%!important;
+    overflow:hidden!important;
+  }
+
+  .app{
+    height:100dvh!important;
+    min-height:100dvh!important;
+    grid-template-rows:88px minmax(0,1fr) 20px!important;
+  }
+
+  header{
+    min-height:88px!important;
+    height:88px!important;
+    padding:7px 12px!important;
+    gap:12px!important;
+  }
+
+  .logoWrap{
+    width:104px!important;
+    height:64px!important;
+    min-width:104px!important;
+    flex-basis:104px!important;
+  }
+
+  .brand{
+    font-size:27px!important;
+  }
+
+  .brandSub{
+    font-size:8.5px!important;
+    letter-spacing:2.8px!important;
+    margin-top:5px!important;
+  }
+
+  .dateTime{
+    min-width:0!important;
+    padding:8px 12px!important;
+    gap:12px!important;
+  }
+
+  .dateTime .lbl,
+  .dateLabel,
+  .clockLabel{
+    font-size:8px!important;
+    margin-bottom:3px!important;
+  }
+
+  .dateNow{
+    font-size:21px!important;
+    line-height:1!important;
+  }
+
+  .clock{
+    font-size:43px!important;
+    line-height:.95!important;
+  }
+
+  .dateDivider{
+    height:48px!important;
+  }
+
+  main{
+    min-height:0!important;
+    height:100%!important;
+    padding:7px 9px 4px!important;
+    gap:8px!important;
+  }
+
+  .panel,
+  .card,
+  .camPanel,
+  .resultPanel{
+    min-height:0!important;
+    height:100%!important;
+  }
+
+  .panelHeader{
+    padding:7px 9px 5px!important;
+  }
+
+  .panelHeader h2{
+    font-size:16px!important;
+    margin:2px 0!important;
+  }
+
+  .panelHeader p{
+    font-size:8.5px!important;
+    line-height:1.2!important;
+  }
+
+  .eyebrow{
+    font-size:8px!important;
+  }
+
+  .statusChip{
+    padding:5px 8px!important;
+    font-size:8px!important;
+  }
+
+  .videoShell{
+    min-height:0!important;
+    padding:5px 8px 0!important;
+  }
+
+  .videoBox{
+    min-height:0!important;
+    height:100%!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+    border-radius:12px!important;
+  }
+
+  .frame{
+    inset:15% 24%!important;
+  }
+
+  .frame i{
+    width:38px!important;
+    height:38px!important;
+    border-width:4px!important;
+  }
+
+  .scanHint{
+    bottom:6px!important;
+    font-size:7.5px!important;
+    padding:4px 7px!important;
+  }
+
+  .controls{
+    padding:6px 8px 7px!important;
+    gap:6px!important;
+  }
+
+  .controls button{
+    height:38px!important;
+    min-height:38px!important;
+    font-size:10px!important;
+    padding:0 6px!important;
+  }
+
+  .idleState{
+    padding:10px 14px!important;
+  }
+
+  .idleIcon{
+    width:74px!important;
+    height:74px!important;
+    font-size:32px!important;
+    margin-bottom:8px!important;
+  }
+
+  .title{
+    font-size:21px!important;
+  }
+
+  .name{
+    font-size:11px!important;
+    margin-top:5px!important;
+  }
+
+  .howTo{
+    margin-top:12px!important;
+    padding-top:8px!important;
+  }
+
+  .howToTitle{
+    font-size:8px!important;
+    margin-bottom:7px!important;
+  }
+
+  .steps{
+    gap:5px!important;
+  }
+
+  .steps>div{
+    min-height:32px!important;
+    padding:4px 6px!important;
+  }
+
+  .steps b{
+    width:17px!important;
+    height:17px!important;
+    font-size:9px!important;
+  }
+
+  .steps span{
+    font-size:7.5px!important;
+  }
+
+  footer{
+    min-height:20px!important;
+    height:20px!important;
+    padding:1px 10px 3px!important;
+  }
+
+  .status,
+  .footerText{
+    font-size:7.5px!important;
+  }
+
+  /* Ficha del trabajador en tablet */
+  .workerBox{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    padding:6px 9px 6px!important;
+  }
+
+  .workerTop{
+    grid-template-columns:88px minmax(0,1fr)!important;
+    gap:10px!important;
+    margin-bottom:4px!important;
+  }
+
+  .workerAvatar{
+    width:88px!important;
+    height:100px!important;
+  }
+
+  .workerName{
+    font-size:21px!important;
+    margin-bottom:3px!important;
+  }
+
+  .workerMeta{
+    font-size:9px!important;
+    line-height:1.2!important;
+  }
+
+  .todayInfo{
+    margin:4px 0!important;
+    padding:5px 6px!important;
+    font-size:8px!important;
+  }
+
+  .turnDetail{
+    min-height:34px!important;
+    padding:4px 6px!important;
+    margin:3px 0 4px!important;
+  }
+
+  .turnDetail b{
+    font-size:7.5px!important;
+  }
+
+  .turnDetail span{
+    font-size:10px!important;
+  }
+
+  .askTitle{
+    font-size:12px!important;
+    margin:4px 0 3px!important;
+  }
+
+  .groupLabel{
+    font-size:7px!important;
+    margin:3px 0!important;
+  }
+
+  .typeGrid,
+  .specialGrid{
+    gap:5px!important;
+  }
+
+  .typeBtn{
+    min-height:32px!important;
+    height:32px!important;
+    font-size:8.5px!important;
+    padding:3px 5px!important;
+  }
+
+  .scanMsg{
+    margin-top:4px!important;
+    padding:4px 6px!important;
+    font-size:7px!important;
+  }
+
+  .cancelMarkBtn{
+    min-height:32px!important;
+    height:32px!important;
+    font-size:8.5px!important;
+    padding:3px 8px!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
