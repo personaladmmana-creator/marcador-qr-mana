@@ -3898,7 +3898,92 @@ document.querySelectorAll('[data-tipo]').forEach(b=>{
 });
 
 
-function submitMark(value,tipo='JORNADA',observacion='',eventoExacto='',intento=0){
+function manaVerificarMarcacionTrasTimeout_(value,tipo,eventoExacto,eventoEsperado,trabajadorSnapshot){
+  const nombreSnapshot=(trabajadorSnapshot&&trabajadorSnapshot.nombre)||'';
+
+  setResult(
+    'neutral',
+    'VERIFICANDO MARCACIÓN...',
+    nombreSnapshot,
+    eventoEsperado,
+    '',
+    'La respuesta demoró. Verificando si la marcación ya quedó registrada.'
+  );
+  document.getElementById('status').textContent='Verificando marcación...';
+
+  setTimeout(()=>{
+    apiJsonp({
+      accion:'identificarQr',
+      valorQR:value,
+      dispositivo:'MARCADOR EXTERNO MANÁ | '+navigator.userAgent.slice(0,130)
+    },r=>{
+      busy=false;
+
+      if(r && r.ok && tipo==='JORNADA' && eventoExacto){
+        const siguientes=(r.opciones||[])
+          .filter(o=>o.tipo==='EVENTO')
+          .map(o=>String(o.evento||'').trim());
+
+        // Si el evento que acabamos de marcar YA NO aparece como siguiente,
+        // significa que el servidor avanzó la secuencia: la marcación sí quedó grabada.
+        const siguePendiente=siguientes.includes(String(eventoExacto||'').trim());
+
+        if(!siguePendiente){
+          const hora=new Date().toLocaleTimeString('en-US',{
+            hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
+          }).toLowerCase();
+
+          setResult(
+            'ok',
+            'MARCACIÓN REGISTRADA',
+            nombreSnapshot,
+            eventoEsperado,
+            hora,
+            [
+              (trabajadorSnapshot&&trabajadorSnapshot.codigo)||value,
+              (trabajadorSnapshot&&trabajadorSnapshot.area)||'',
+              (trabajadorSnapshot&&trabajadorSnapshot.cargo)||''
+            ].filter(Boolean).join(' · ')
+          );
+
+          document.getElementById('status').textContent='Marcación registrada.';
+          manaSonidoMarcacionRegistrada_();
+          try{navigator.vibrate&&navigator.vibrate([100,50,140]);}catch(e){}
+
+          setTimeout(()=>cancelarLecturaActual(),3300);
+          return;
+        }
+      }
+
+      // No se pudo confirmar que avanzó la secuencia.
+      setResult(
+        'bad',
+        'NO SE PUDO CONFIRMAR',
+        nombreSnapshot,
+        eventoEsperado,
+        '',
+        'No se recibió confirmación del servidor. Vuelva a escanear antes de intentar nuevamente.'
+      );
+      document.getElementById('status').textContent='No se pudo confirmar la marcación.';
+      setTimeout(()=>cancelarLecturaActual(),4200);
+
+    },err=>{
+      busy=false;
+      setResult(
+        'bad',
+        'SIN RESPUESTA DEL SISTEMA',
+        nombreSnapshot,
+        eventoEsperado,
+        '',
+        'No se pudo verificar la marcación: '+err.message
+      );
+      document.getElementById('status').textContent='No se pudo verificar la marcación.';
+      setTimeout(()=>cancelarLecturaActual(),4200);
+    });
+  },900);
+}
+
+function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
   busy=true;
   manaMostrarResultadoMarcacion_();
 
@@ -3908,14 +3993,13 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto='',intento=
 
   setResult(
     'neutral',
-    intento>0 ? 'REINTENTANDO...' : 'REGISTRANDO...',
+    'REGISTRANDO...',
     nombreSnapshot,
     eventoEsperado,
     '',
-    intento>0 ? 'Reintentando automáticamente la comunicación con el sistema.' : 'Procesando marcación...'
+    'Procesando marcación...'
   );
-  document.getElementById('status').textContent=
-    intento>0 ? 'Reintentando marcación...' : 'Registrando marcación...';
+  document.getElementById('status').textContent='Registrando marcación...';
 
   apiJsonp({
     accion:'marcarQr',
@@ -3933,7 +4017,6 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto='',intento=
     const cargo=(r&&r.cargo)||(trabajadorSnapshot&&trabajadorSnapshot.cargo)||'';
     const msg=((r&&(r.error||r.mensaje))||'').trim();
 
-    // Si el servidor dice que ya la recibió, no obligamos al trabajador a insistir.
     const yaRecibida=/marcaci[oó]n ya recibida|ya fue registrada|ya registrada/i.test(msg);
 
     if((r && r.ok) || yaRecibida){
@@ -3945,77 +4028,46 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto='',intento=
 
       setResult(
         'ok',
-        yaRecibida ? 'MARCACIÓN YA REGISTRADA' : 'MARCACIÓN REGISTRADA',
+        'MARCACIÓN REGISTRADA',
         nombre,
         evento,
         hora,
         [codigo,area,cargo].filter(Boolean).join(' · ')
       );
 
-      document.getElementById('status').textContent=
-        yaRecibida ? 'La marcación ya estaba registrada.' : 'Marcación registrada.';
-
+      document.getElementById('status').textContent='Marcación registrada.';
       manaSonidoMarcacionRegistrada_();
       try{navigator.vibrate&&navigator.vibrate([100,50,140]);}catch(e){}
 
-      setTimeout(()=>{
-        cancelarLecturaActual();
-      },3300);
-
-    }else{
-      setResult(
-        'bad',
-        'NO SE REGISTRÓ',
-        nombre,
-        eventoEsperado,
-        new Date().toLocaleTimeString('en-US',{
-          hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
-        }).toLowerCase(),
-        msg || 'El sistema rechazó la marcación.'
-      );
-      document.getElementById('status').textContent='No se registró la marcación.';
-      try{navigator.vibrate&&navigator.vibrate([300]);}catch(e){}
-
-      // El mensaje queda visible un poco más para que se pueda leer.
-      setTimeout(()=>{
-        cancelarLecturaActual();
-      },4200);
-    }
-
-  },err=>{
-    busy=false;
-
-    // Un solo reintento automático ante error de conexión/timeout.
-    if(intento<1){
-      setResult(
-        'neutral',
-        'REINTENTANDO...',
-        nombreSnapshot,
-        eventoEsperado,
-        '',
-        'La conexión demoró. El sistema hará un segundo intento automáticamente.'
-      );
-      document.getElementById('status').textContent='Reintentando automáticamente...';
-
-      setTimeout(()=>{
-        submitMark(value,tipo,observacion,eventoExacto,intento+1);
-      },650);
+      setTimeout(()=>cancelarLecturaActual(),3300);
       return;
     }
 
     setResult(
       'bad',
-      'SIN RESPUESTA DEL SISTEMA',
-      nombreSnapshot,
+      'NO SE REGISTRÓ',
+      nombre,
       eventoEsperado,
-      '',
-      err.message
+      new Date().toLocaleTimeString('en-US',{
+        hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
+      }).toLowerCase(),
+      msg || 'El sistema rechazó la marcación.'
     );
-    document.getElementById('status').textContent='No llegó respuesta del servidor.';
+    document.getElementById('status').textContent='No se registró la marcación.';
+    try{navigator.vibrate&&navigator.vibrate([300]);}catch(e){}
+    setTimeout(()=>cancelarLecturaActual(),4200);
 
-    setTimeout(()=>{
-      cancelarLecturaActual();
-    },4200);
+  },err=>{
+    // IMPORTANTE:
+    // Ya NO reenviamos la marcación automáticamente.
+    // Primero verificamos si el primer envío sí quedó guardado.
+    manaVerificarMarcacionTrasTimeout_(
+      value,
+      tipo,
+      eventoExacto,
+      eventoEsperado,
+      trabajadorSnapshot
+    );
   });
 }
 
