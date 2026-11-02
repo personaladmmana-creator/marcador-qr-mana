@@ -71,8 +71,8 @@ canvas{display:none}
 .cancelBtn{position:absolute;right:12px;top:10px;z-index:3;min-width:145px;height:48px;border:0;border-radius:11px;background:#9b4436;color:#fff;font-weight:900;cursor:pointer}
 .workerTop{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:center;padding-right:165px;margin-bottom:4px}
 .avatar{width:150px;height:166px;border-radius:17px;border:3px solid #ddb67e;background:#efe1d0;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.avatar img{width:100%;height:100%;object-fit:cover;display:none}
-.placeholder{font-weight:900;color:#89684e;text-align:center}
+.avatar img{width:100%;height:100%;object-fit:contain;object-position:center center;display:none;background:#fff}
+.placeholder{font-weight:900;color:#89684e;text-align:center;font-size:11px;padding:8px}
 .workerName{font-size:34px;font-weight:950;line-height:1.03;text-align:center;color:#481c0d;margin-bottom:8px}
 .workerMeta{font-size:14px;font-weight:800;color:#6c341b;text-align:center;line-height:1.35}
 .metaRow{display:flex;justify-content:center;gap:24px;flex-wrap:wrap}
@@ -251,6 +251,56 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
 }
 </style>
 
+
+<style id="mana-fecha-cabecera-mas-visible">
+/* Fecha superior más grande y equilibrada con el reloj */
+.dateTime{
+  grid-template-columns:minmax(360px,1.15fr) 1px minmax(250px,.85fr)!important;
+}
+.dateBlock .lbl,
+.dateTime > div:first-child .lbl{
+  font-size:12px!important;
+  letter-spacing:2.4px!important;
+  margin-bottom:7px!important;
+}
+.dateNow{
+  font-size:29px!important;
+  line-height:1.08!important;
+  font-weight:950!important;
+  letter-spacing:.2px!important;
+  color:#fff!important;
+  white-space:nowrap!important;
+}
+.clockBlock .lbl,
+.dateTime > div:last-child .lbl{
+  font-size:11px!important;
+  letter-spacing:2.3px!important;
+}
+.clock{
+  font-size:58px!important;
+}
+
+@media(max-width:1200px){
+  .dateTime{
+    min-width:520px!important;
+    grid-template-columns:minmax(300px,1.12fr) 1px minmax(220px,.88fr)!important;
+  }
+  .dateNow{font-size:24px!important}
+  .clock{font-size:50px!important}
+}
+
+@media(max-width:980px){
+  .dateTime{
+    min-width:450px!important;
+    grid-template-columns:minmax(260px,1.1fr) 1px minmax(190px,.9fr)!important;
+  }
+  .dateBlock .lbl,
+  .dateTime > div:first-child .lbl{font-size:10px!important}
+  .dateNow{font-size:21px!important}
+  .clock{font-size:44px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -297,7 +347,7 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
     <div class="worker" id="worker">
       <button class="cancelBtn" id="btnCancelWorker">CANCELAR</button>
       <div class="workerTop">
-        <div class="avatar"><img id="workerPhoto" alt=""><div class="placeholder" id="photoPlaceholder">SIN FOTO</div></div>
+        <div class="avatar"><img id="workerPhoto" alt=""><div class="placeholder" id="photoPlaceholder">CARGANDO FOTO...</div></div>
         <div>
           <div class="workerName" id="workerName"></div>
           <div class="workerMeta" id="workerMeta"></div>
@@ -365,7 +415,7 @@ const $=id=>document.getElementById(id);
 const video=$("video"), canvas=$("canvas"), ctx=canvas.getContext("2d",{willReadFrequently:true});
 let stream=null, scanning=false, detector=null, raf=0;
 let busy=false, trabajador=null, qrActual="", requestSeq=0;
-let lastValue="", lastAt=0, resetTimer=null, pendingAction=null;
+let lastValue="", lastAt=0, resetTimer=null, pendingAction=null, qrVisibleNow=false, qrLostAt=0;
 
 function tick(){
   const n=new Date();
@@ -397,7 +447,7 @@ function resetReader(message){
   clearReset();
   requestSeq++; // invalida cualquier respuesta tardía
   busy=false; trabajador=null; qrActual=""; pendingAction=null;
-  lastAt=Date.now(); // pequeño bloqueo para evitar releer el QR que sigue frente a la cámara
+  lastAt=Date.now(); qrVisibleNow=false; // obliga a una nueva lectura real del QR
   showOnly("idle");
   $("status").textContent=message || (scanning?"Cámara activa. Acerque el QR del fotocheck.":"Marcador detenido.");
 }
@@ -453,7 +503,14 @@ async function scanLoop(){
       const code=jsQR(im.data,im.width,im.height,{inversionAttempts:"dontInvert"});
       if(code) value=code.data||"";
     }
-    if(value) handleQr(value);
+    if(value){
+      handleQr(value);
+    }else{
+      if(qrVisibleNow){
+        qrVisibleNow=false;
+        qrLostAt=Date.now();
+      }
+    }
   }catch(e){}
   raf=requestAnimationFrame(scanLoop);
 }
@@ -512,11 +569,23 @@ function beep(){
 
 function handleQr(raw){
   if(busy || trabajador || $("confirmModal").classList.contains("show")) return;
+
   const value=extractTra(raw);
   if(!/^TRA-\d{3,4}$/.test(value)) return;
+
   const now=Date.now();
-  if(value===lastValue && now-lastAt<4500) return;
-  lastValue=value; lastAt=now; qrActual=value;
+
+  // Si el mismo QR sigue delante de la cámara, no lo procesamos otra vez.
+  if(value===lastValue && qrVisibleNow) return;
+
+  // Pequeña ventana de seguridad después de perder el QR.
+  if(value===lastValue && now-lastAt<1800) return;
+
+  lastValue=value;
+  lastAt=now;
+  qrVisibleNow=true;
+  qrActual=value;
+
   beep();
   identificar(value);
 }
@@ -556,7 +625,22 @@ function identificar(value){
   r=>{
     if(seq!==requestSeq) return;
     busy=false;
-    if(r && r.ok){ trabajador=r; mostrarTrabajador(r); }
+    if(r && r.ok){
+      trabajador=r;
+
+      try{
+        if(r.fotoUrl){
+          const pre=new Image();
+          let fu=String(r.fotoUrl);
+          if(/drive\.google\.com\/thumbnail/i.test(fu)){
+            fu=fu.replace(/sz=w\d+/i,"sz=w400");
+          }
+          pre.src=fu;
+        }
+      }catch(e){}
+
+      mostrarTrabajador(r);
+    }
     else{
       setFeedback("bad","NO SE IDENTIFICÓ","","","",""+((r&&(r.error||r.mensaje))||"Trabajador no encontrado."));
       $("status").textContent="No se pudo identificar al trabajador."; scheduleReset(3000);
@@ -582,9 +666,38 @@ function mostrarTrabajador(t){
     '<div class="metaRow"><span><b>Área</b> '+(t.area||"")+'</span><span><b>Cargo</b> '+(t.cargo||"")+'</span></div>';
 
   const photo=$("workerPhoto"), ph=$("photoPlaceholder"), foto=String(t.fotoUrl||"").trim();
-  photo.onerror=()=>{photo.style.display="none";ph.style.display="flex";};
-  if(foto){photo.src=foto;photo.style.display="block";ph.style.display="none";}
-  else{photo.removeAttribute("src");photo.style.display="none";ph.style.display="flex";}
+
+  photo.style.display="none";
+  ph.style.display="flex";
+  ph.textContent=foto?"CARGANDO FOTO...":"SIN FOTO";
+
+  photo.onload=()=>{
+    photo.style.display="block";
+    ph.style.display="none";
+  };
+
+  photo.onerror=()=>{
+    photo.removeAttribute("src");
+    photo.style.display="none";
+    ph.style.display="flex";
+    ph.textContent="SIN FOTO";
+  };
+
+  if(foto){
+    photo.decoding="async";
+    photo.loading="eager";
+
+    let fotoRapida=foto;
+    try{
+      if(/drive\.google\.com\/thumbnail/i.test(fotoRapida)){
+        fotoRapida=fotoRapida.replace(/sz=w\d+/i,"sz=w400");
+      }
+    }catch(e){}
+
+    photo.src=fotoRapida;
+  }else{
+    photo.removeAttribute("src");
+  }
 
   const refs=(t.refrigerios||[]).join(", ");
   $("today").innerHTML='<span class="chip"><b>Fecha</b> '+(t.fecha||"")+'</span>'+
@@ -682,9 +795,23 @@ function registrar(tipo,observacion,eventoExacto,textoElegido){
       trabajador=null; qrActual="";
       scheduleReset(2600);
     }else{
-      setFeedback("bad","NO SE REGISTRÓ",nombre,evento,hora,(r&&(r.error||r.mensaje))||"Error desconocido.");
-      $("status").textContent="No se registró la marcación.";
-      scheduleReset(3400);
+      const msg=(r&&(r.error||r.mensaje))||"Error desconocido.";
+      const duplicada=/marcaci[oó]n ya recibida/i.test(msg);
+
+      setFeedback(
+        duplicada?"loading":"bad",
+        duplicada?"MARCACIÓN YA REGISTRADA":"NO SE REGISTRÓ",
+        nombre,
+        evento,
+        hora,
+        msg
+      );
+
+      $("status").textContent=duplicada
+        ?"La marcación ya estaba registrada."
+        :"No se registró la marcación.";
+
+      scheduleReset(duplicada?2200:3400);
     }
   },err=>{
     if(seq!==requestSeq) return;
