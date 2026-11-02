@@ -136,6 +136,121 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
   .specialGrid{grid-template-columns:1fr}.cancelBtn{top:8px}
 }
 </style>
+
+<style id="mana-fix-confirmacion-y-pantalla-v2">
+/* PANEL DERECHO: una sola pantalla, sin desplazamiento vertical */
+.resultPanel{overflow:hidden!important}
+.worker{
+  overflow:hidden!important;
+  padding:8px 14px 8px!important;
+  gap:2px!important;
+}
+.workerTop{
+  grid-template-columns:132px minmax(0,1fr)!important;
+  gap:14px!important;
+  padding-right:150px!important;
+  margin-bottom:2px!important;
+}
+.avatar{
+  width:132px!important;
+  height:144px!important;
+}
+.workerName{
+  font-size:30px!important;
+  margin-bottom:4px!important;
+}
+.workerMeta{
+  font-size:12px!important;
+  line-height:1.22!important;
+}
+.today{
+  margin:2px 0!important;
+  gap:4px!important;
+}
+.chip{
+  padding:4px 8px!important;
+  font-size:10px!important;
+}
+.turnDetail{
+  padding:5px 8px!important;
+  margin:2px 0 3px!important;
+}
+.turnDetail span{font-size:12px!important}
+.ask{
+  font-size:16px!important;
+  margin:3px 0 1px!important;
+}
+.group{
+  margin:1px 0 3px!important;
+  font-size:8px!important;
+}
+.grid,.specialGrid{gap:5px!important}
+.markBtn{
+  min-height:43px!important;
+  height:43px!important;
+  font-size:12px!important;
+  padding:5px 8px!important;
+}
+.specialGrid{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  grid-auto-flow:row!important;
+}
+.specialGrid .otra{
+  grid-column:auto!important;
+  width:auto!important;
+}
+.cancelBtn{
+  min-width:132px!important;
+  height:42px!important;
+  font-size:12px!important;
+}
+
+/* La confirmación siempre encima de todo */
+#confirmModal{
+  z-index:99999!important;
+  position:fixed!important;
+  inset:0!important;
+}
+#confirmModal.show{
+  display:flex!important;
+}
+#confirmModal .modalBox{
+  width:min(520px,92vw)!important;
+}
+#confirmModal .confirmEvent{
+  font-size:28px!important;
+  line-height:1.1!important;
+}
+
+@media (min-width:821px) and (max-height:780px){
+  .app{grid-template-rows:96px minmax(0,1fr) 18px!important}
+  header{padding:7px 14px!important}
+  .logoWrap{width:105px!important;height:64px!important}
+  .brand{font-size:27px!important}
+  .brandSub{font-size:8px!important;margin-top:5px!important}
+  .dateTime{padding:7px 11px!important}
+  .dateNow{font-size:18px!important}
+  .clock{font-size:44px!important}
+  main{padding:7px 10px 3px!important;gap:8px!important}
+  .panelHeader{padding:7px 10px 5px!important}
+  .panelHeader h2{font-size:18px!important}
+  .videoShell{padding:5px 8px 0!important}
+  .controls{padding:6px 8px 7px!important}
+  .controls button{height:40px!important}
+  .worker{padding:6px 12px 5px!important}
+  .workerTop{
+    grid-template-columns:118px minmax(0,1fr)!important;
+    padding-right:142px!important;
+  }
+  .avatar{width:118px!important;height:128px!important}
+  .workerName{font-size:26px!important}
+  .workerMeta{font-size:11px!important}
+  .markBtn{min-height:38px!important;height:38px!important;font-size:11px!important}
+  .cancelBtn{height:38px!important;min-width:125px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -195,10 +310,10 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
       <div class="grid" id="jornadaGrid"></div>
       <div class="group">OTRAS MARCACIONES</div>
       <div class="specialGrid">
-        <button class="markBtn permiso" data-tipo="PERMISO">PERMISO</button>
-        <button class="markBtn comision" data-tipo="COMISION">COMISIÓN DE SERVICIO</button>
-        <button class="markBtn recuperacion" data-tipo="RECUPERACION">RECUPERACIÓN / COMPENSACIÓN</button>
-        <button class="markBtn otra" data-tipo="OTRA">OTRA SALIDA AUTORIZADA</button>
+        <button class="markBtn permiso" data-tipo="PERMISO" data-texto="PERMISO">PERMISO</button>
+        <button class="markBtn comision" data-tipo="COMISION" data-texto="COMISIÓN DE SERVICIO">COMISIÓN DE SERVICIO</button>
+        <button class="markBtn recuperacion" data-tipo="RECUPERACION" data-texto="RECUPERACIÓN / COMPENSACIÓN">RECUPERACIÓN / COMPENSACIÓN</button>
+        <button class="markBtn otra" data-tipo="OTRA" data-texto="OTRA SALIDA AUTORIZADA">OTRA SALIDA AUTORIZADA</button>
       </div>
     </div>
 
@@ -221,13 +336,13 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
 
 <div class="modal" id="confirmModal">
   <div class="modalBox">
-    <h3>¿Confirmar marcación?</h3>
+    <h3 style="text-align:center">¿ESTÁ SEGURO DE REALIZAR ESTA MARCACIÓN?</h3>
     <p class="confirmName" id="confirmName"></p>
     <p class="confirmEvent" id="confirmEvent"></p>
     <p style="text-align:center">Verifique que la marcación sea correcta antes de registrarla.</p>
     <div class="modalActions">
       <button class="no" id="confirmNo">CANCELAR</button>
-      <button class="yes" id="confirmYes">SÍ, MARCAR</button>
+      <button class="yes" id="confirmYes">SÍ, CONFIRMAR MARCACIÓN</button>
     </div>
   </div>
 </div>
@@ -296,6 +411,8 @@ function extractTra(raw){
 }
 
 async function startCamera(){
+  // Este clic del usuario habilita el audio para los siguientes escaneos.
+  await unlockAudio();
   try{
     if(stream) stopCamera(false);
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
@@ -341,10 +458,55 @@ async function scanLoop(){
   raf=requestAnimationFrame(scanLoop);
 }
 
+let audioCtx=null;
+let audioUnlocked=false;
+
+async function unlockAudio(){
+  try{
+    const A=window.AudioContext||window.webkitAudioContext;
+    if(!A) return;
+    if(!audioCtx) audioCtx=new A();
+    if(audioCtx.state==="suspended") await audioCtx.resume();
+
+    // Pulso inaudible para que Chrome autorice el audio después del clic del usuario.
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    g.gain.value=0.00001;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.02);
+    audioUnlocked=true;
+  }catch(e){}
+}
+
 function beep(){
   try{
-    const A=window.AudioContext||window.webkitAudioContext, a=new A(), o=a.createOscillator(), g=a.createGain();
-    o.frequency.value=880; g.gain.value=.05; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+.09);
+    const A=window.AudioContext||window.webkitAudioContext;
+    if(!A) return;
+    if(!audioCtx) audioCtx=new A();
+
+    const sonar=()=>{
+      const now=audioCtx.currentTime;
+      const o=audioCtx.createOscillator();
+      const g=audioCtx.createGain();
+
+      o.type="sine";
+      o.frequency.setValueAtTime(1050,now);
+      o.frequency.exponentialRampToValueAtTime(780,now+0.12);
+
+      g.gain.setValueAtTime(0.0001,now);
+      g.gain.exponentialRampToValueAtTime(0.20,now+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,now+0.16);
+
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(now); o.stop(now+0.17);
+    };
+
+    if(audioCtx.state==="suspended"){
+      audioCtx.resume().then(()=>{audioUnlocked=true; sonar();}).catch(()=>{});
+    }else{
+      audioUnlocked=true;
+      sonar();
+    }
   }catch(e){}
 }
 
@@ -447,7 +609,9 @@ function mostrarTrabajador(t){
     const b=document.createElement("button");
     b.className="markBtn "+(o.clase||"evento");
     b.textContent=o.texto||o.evento;
-    b.onclick=()=>pedirConfirmacion({tipo:"JORNADA",evento:o.evento,texto:o.texto||o.evento});
+    b.dataset.tipo="JORNADA";
+    b.dataset.evento=o.evento||"";
+    b.dataset.texto=o.texto||o.evento||"MARCACIÓN";
     grid.appendChild(b);
   }
   $("status").textContent="Trabajador identificado. Verifique y seleccione la marcación.";
@@ -475,9 +639,20 @@ $("confirmYes").onclick=()=>{
   registrar(a.tipo,obs,a.evento||"",a.texto||"");
 };
 
-document.querySelectorAll("[data-tipo]").forEach(b=>{
-  b.onclick=()=>pedirConfirmacion({tipo:b.dataset.tipo,evento:"",texto:b.textContent.trim()});
-});
+// Confirmación obligatoria para TODOS los botones de marcación.
+document.addEventListener("click",function(ev){
+  const b=ev.target.closest(".markBtn");
+  if(!b) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  if(!trabajador || !qrActual || busy) return;
+
+  pedirConfirmacion({
+    tipo:b.dataset.tipo || "JORNADA",
+    evento:b.dataset.evento || "",
+    texto:b.dataset.texto || b.textContent.trim()
+  });
+},true);
 
 function registrar(tipo,observacion,eventoExacto,textoElegido){
   if(!trabajador || !qrActual || busy) return;
@@ -533,6 +708,13 @@ $("configSave").onclick=()=>{
   localStorage.setItem("mana_qr_api_url",u); $("configModal").classList.remove("show");
   $("status").textContent="Configuración guardada.";
 };
+
+
+// Refuerzo para tablet/Chrome: cualquier toque/clic habilita el sonido una sola vez.
+document.addEventListener("pointerdown",function manaUnlockOnce(){
+  unlockAudio();
+  document.removeEventListener("pointerdown",manaUnlockOnce);
+},{passive:true});
 
 window.addEventListener("beforeunload",()=>stopCamera(false));
 setTimeout(()=>{ if(apiUrl()) startCamera(); else showConfig(); },450);
