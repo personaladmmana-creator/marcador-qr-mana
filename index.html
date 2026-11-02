@@ -2897,6 +2897,86 @@ video{
 }
 </style>
 
+
+<style id="mana-secuencia-obligatoria-v1">
+#jornadaGrid .mana-next-only{
+  grid-column:1/-1!important;
+  width:100%!important;
+  font-weight:1000!important;
+}
+#jornadaGrid .mana-next-only:disabled{
+  opacity:.65!important;
+  cursor:wait!important;
+}
+</style>
+
+
+<style id="mana-responsive-pc-laptop-tablet-secuencia">
+/* PC / laptop: mantiene cámara a la izquierda y panel de marcación a la derecha */
+@media (min-width: 1001px){
+  #jornadaGrid .mana-next-only{
+    grid-column:1/-1!important;
+    min-height:52px!important;
+    height:auto!important;
+    font-size:clamp(15px,1.4vw,19px)!important;
+    padding:10px 14px!important;
+  }
+}
+
+/* Laptop de poca altura: evita cortes verticales */
+@media (min-width: 821px) and (max-width: 1000px),
+       (min-width: 821px) and (max-height: 700px){
+  #jornadaGrid .mana-next-only{
+    grid-column:1/-1!important;
+    min-height:40px!important;
+    height:auto!important;
+    font-size:13px!important;
+    padding:8px 10px!important;
+  }
+}
+
+/* Tablet: conserva el panel completo y un único botón siguiente claramente visible */
+@media (max-width: 820px){
+  main{
+    grid-template-columns:1fr!important;
+  }
+  .cameraPanel,
+  .resultPanel{
+    width:100%!important;
+    min-width:0!important;
+  }
+  #jornadaGrid.typeGrid{
+    grid-template-columns:1fr!important;
+  }
+  #jornadaGrid .mana-next-only{
+    grid-column:1!important;
+    width:100%!important;
+    min-height:58px!important;
+    height:auto!important;
+    font-size:16px!important;
+    line-height:1.15!important;
+    padding:12px 14px!important;
+    white-space:normal!important;
+  }
+}
+
+/* Tablet horizontal: aprovecha mejor el ancho sin perder legibilidad */
+@media (min-width: 700px) and (max-width: 1000px) and (orientation: landscape){
+  main{
+    grid-template-columns:32% 68%!important;
+    column-gap:8px!important;
+  }
+  .cameraPanel,
+  .resultPanel{
+    min-width:0!important;
+  }
+  #jornadaGrid .mana-next-only{
+    min-height:44px!important;
+    font-size:13.5px!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3387,6 +3467,61 @@ function manaFormatoHorario12hTexto(texto){
   });
 }
 
+
+function manaEventoCanonicoDesdeOpcion(o){
+  const directo=String((o&&o.evento)||'').trim().toUpperCase();
+  const texto=String((o&&o.texto)||'').trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  const validos=[
+    'INGRESO_JORNADA',
+    'SALIDA_DESAYUNO','RETORNO_DESAYUNO',
+    'SALIDA_ALMUERZO','RETORNO_ALMUERZO',
+    'SALIDA_INTERMEDIA','RETORNO_INTERMEDIO',
+    'SALIDA_CENA','RETORNO_CENA',
+    'SALIDA_JORNADA'
+  ];
+  if(validos.includes(directo)) return directo;
+
+  if(texto.includes('INGRESO') && texto.includes('JORNADA')) return 'INGRESO_JORNADA';
+
+  if(texto.includes('DESAYUNO')){
+    if(texto.includes('RETORNO') || texto.includes('REGRESO')) return 'RETORNO_DESAYUNO';
+    if(texto.includes('SALIDA')) return 'SALIDA_DESAYUNO';
+  }
+  if(texto.includes('ALMUERZO')){
+    if(texto.includes('RETORNO') || texto.includes('REGRESO')) return 'RETORNO_ALMUERZO';
+    if(texto.includes('SALIDA')) return 'SALIDA_ALMUERZO';
+  }
+  if(texto.includes('INTERMEDIA') || texto.includes('INTERMEDIO')){
+    if(texto.includes('RETORNO') || texto.includes('REGRESO')) return 'RETORNO_INTERMEDIO';
+    if(texto.includes('SALIDA')) return 'SALIDA_INTERMEDIA';
+  }
+  if(texto.includes('CENA')){
+    if(texto.includes('RETORNO') || texto.includes('REGRESO')) return 'RETORNO_CENA';
+    if(texto.includes('SALIDA')) return 'SALIDA_CENA';
+  }
+  if(texto.includes('SALIDA') && texto.includes('JORNADA')) return 'SALIDA_JORNADA';
+
+  return directo;
+}
+
+function manaTextoEventoCanonico(ev, fallback=''){
+  const m={
+    INGRESO_JORNADA:'INGRESO DE JORNADA',
+    SALIDA_DESAYUNO:'SALIDA A DESAYUNO',
+    RETORNO_DESAYUNO:'RETORNO DE DESAYUNO',
+    SALIDA_ALMUERZO:'SALIDA A ALMUERZO',
+    RETORNO_ALMUERZO:'RETORNO DE ALMUERZO',
+    SALIDA_INTERMEDIA:'SALIDA INTERMEDIA',
+    RETORNO_INTERMEDIO:'RETORNO INTERMEDIO',
+    SALIDA_CENA:'SALIDA A CENA',
+    RETORNO_CENA:'RETORNO DE CENA',
+    SALIDA_JORNADA:'SALIDA DE JORNADA'
+  };
+  return m[ev]||fallback||ev;
+}
+
 function mostrarTrabajador(t){
   trabajadorActual=t;
 
@@ -3439,6 +3574,7 @@ function mostrarTrabajador(t){
   const grid=document.getElementById('jornadaGrid');
   grid.innerHTML='';
   const eventos=(t.opciones||[]).filter(o=>o.tipo==='EVENTO');
+
   if(!programado){
     const aviso=document.createElement('div');
     aviso.className='noScheduleMsg';
@@ -3450,14 +3586,22 @@ function mostrarTrabajador(t){
     aviso.textContent='No hay marcaciones ordinarias pendientes en este momento.';
     grid.appendChild(aviso);
   }else{
-    eventos.forEach(o=>{
-      const b=document.createElement('button');
-      b.className='typeBtn '+(o.clase||'evento');
-      b.textContent=o.texto||o.evento;
-      b.dataset.evento=o.evento||'';
-      b.addEventListener('click',()=>elegirEvento(b.dataset.evento));
-      grid.appendChild(b);
+    // SECUENCIA OBLIGATORIA:
+    // el API ya devuelve las opciones ordinarias en orden lógico.
+    // Mostramos únicamente la PRIMERA pendiente para impedir saltos.
+    const o=eventos[0];
+    const eventoCanonico=manaEventoCanonicoDesdeOpcion(o);
+
+    const b=document.createElement('button');
+    b.className='typeBtn '+(o.clase||'evento')+' mana-next-only';
+    b.textContent=manaTextoEventoCanonico(eventoCanonico,o.texto||o.evento||'SIGUIENTE MARCACIÓN');
+    b.dataset.evento=eventoCanonico;
+    b.addEventListener('click',()=>{
+      if(!b.dataset.evento) return;
+      b.disabled=true;
+      elegirEvento(b.dataset.evento);
     });
+    grid.appendChild(b);
   }
 
   result.classList.add('worker-mode');
@@ -3525,7 +3669,12 @@ function cancelarLecturaActual(){
 
 function elegirEvento(evento){
   detenerAutoResetTrabajador();
+  evento=String(evento||'').trim().toUpperCase();
   if(!trabajadorActual || !qrActual || !evento) return;
+
+  // Normalización defensiva para refrigerios.
+  evento=manaEventoCanonicoDesdeOpcion({evento:evento,texto:evento});
+
   document.getElementById('workerBox').classList.remove('show','programado');
   submitMark(qrActual,'JORNADA','',evento);
 }
