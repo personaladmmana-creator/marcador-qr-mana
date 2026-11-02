@@ -3782,7 +3782,7 @@ async function startCamera(){
     // Primer intento: preferir la cámara posterior, como antes.
     try{
       stream=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:'environment'},width:{ideal:960},height:{ideal:540}},
+        video:{facingMode:{ideal:'user'},width:{ideal:960},height:{ideal:540}},
         audio:false
       });
     }catch(primerError){
