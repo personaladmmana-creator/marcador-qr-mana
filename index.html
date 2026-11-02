@@ -3555,6 +3555,47 @@ let stream=null, scanning=false, busy=false, lastValue='', lastAt=0, detector=nu
 let autoResetTrabajadorTimer=null;
 const AUTO_RESET_TRABAJADOR_MS=30000;
 
+let manaCamaraIdleTimer=null;
+const MANA_CAMARA_IDLE_MS=30000;
+
+function manaLimpiarTimerCamara_(){
+  if(manaCamaraIdleTimer){
+    clearTimeout(manaCamaraIdleTimer);
+    manaCamaraIdleTimer=null;
+  }
+}
+
+function manaProgramarAutoApagadoCamara_(){
+  manaLimpiarTimerCamara_();
+
+  manaCamaraIdleTimer=setTimeout(function(){
+    manaCamaraIdleTimer=null;
+
+    if(scanning && !busy && !trabajadorActual && !qrActual){
+      try{ stopCamera(); }catch(e){}
+
+      try{
+        if(typeof manaRestaurarEstadoEspera_==='function'){
+          manaRestaurarEstadoEspera_();
+        }
+      }catch(e){}
+
+      try{
+        setResult(
+          'neutral',
+          'LISTO PARA ESCANEAR',
+          'Pulse ACTIVAR CÁMARA para iniciar una nueva marcación.'
+        );
+      }catch(e){}
+
+      const st=document.getElementById('status');
+      if(st){
+        st.textContent='Tiempo de espera agotado. Cámara apagada. Pulse ACTIVAR CÁMARA para una nueva marcación.';
+      }
+    }
+  },MANA_CAMARA_IDLE_MS);
+}
+
 function tick(){
   const now=new Date();
   document.getElementById('clock').textContent=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).toLowerCase();
@@ -3799,6 +3840,7 @@ async function startCamera(){
     await video.play();
 
     scanning=true;
+    manaProgramarAutoApagadoCamara_();
     document.getElementById('status').textContent='Cámara activa. Acerque el QR del fotocheck.'; const cst=document.getElementById('cameraStateText'); if(cst)cst.textContent='CÁMARA ACTIVA'; const dot=document.querySelector('.statusDot'); if(dot)dot.style.background='#2f7d4a';
     setResult('neutral','LISTO PARA ESCANEAR','Acerque el QR del fotocheck.');
 
@@ -3822,6 +3864,7 @@ async function startCamera(){
 }
 
 function stopCamera(){
+  manaLimpiarTimerCamara_();
   scanning=false;
   if(raf) cancelAnimationFrame(raf);
   raf=0;
@@ -3905,6 +3948,7 @@ function handleQr(raw){
   qrVisibleNow=true;
   qrActual=value;
 
+  manaLimpiarTimerCamara_();
   manaSonidoQrDetectado();
   identificarTrabajador(value);
 }
@@ -4856,127 +4900,6 @@ window.addEventListener('beforeunload',stopCamera);
 </div>
 
 
-<script id="mana-auto-off-extra">
-(function(){
-  const INACTIVIDAD_MS = 30000; // 30 segundos sin escanear
-
-  let manaCamaraIdleTimer = null;
-
-  function limpiarTemporizadorCamara(){
-    if(manaCamaraIdleTimer){
-      clearTimeout(manaCamaraIdleTimer);
-      manaCamaraIdleTimer = null;
-    }
-  }
-
-  function apagarPorInactividad(){
-    limpiarTemporizadorCamara();
-
-    try{
-      if(typeof scanning !== 'undefined' && scanning && !busy && !trabajadorActual && !qrActual){
-        if(typeof stopCamera === 'function') stopCamera();
-
-        try{
-          if(typeof manaRestaurarEstadoEspera_ === 'function'){
-            manaRestaurarEstadoEspera_();
-          }
-        }catch(e){}
-
-        try{
-          if(typeof setResult === 'function'){
-            setResult(
-              'neutral',
-              'LISTO PARA ESCANEAR',
-              'Pulse ACTIVAR CÁMARA para iniciar una nueva marcación.'
-            );
-          }
-        }catch(e){}
-
-        const st = document.getElementById('status');
-        if(st){
-          st.textContent = 'Tiempo de espera agotado. Cámara apagada. Pulse ACTIVAR CÁMARA para una nueva marcación.';
-        }
-      }
-    }catch(e){}
-  }
-
-  function programarAutoApagadoCamara(){
-    limpiarTemporizadorCamara();
-    manaCamaraIdleTimer = setTimeout(apagarPorInactividad, INACTIVIDAD_MS);
-  }
-
-  // Si el usuario activa la cámara pero no pasa el QR, se apagará sola.
-  document.addEventListener('click', function(ev){
-    const b = ev.target.closest('button');
-    if(!b) return;
-
-    const id = b.id || '';
-    const txt = (b.textContent || '').trim().toUpperCase();
-
-    // Activar cámara
-    if(id === 'btnStart' || txt.includes('ACTIVAR CÁMARA')){
-      setTimeout(function(){
-        try{
-          if(typeof scanning !== 'undefined' && scanning){
-            programarAutoApagadoCamara();
-          }
-        }catch(e){}
-      }, 900);
-      return;
-    }
-
-    // Cancelar lectura: también apaga la cámara
-    if(
-      id === 'manaConfirmCancel' ||
-      txt === 'CANCELAR' ||
-      txt.includes('CANCELAR')
-    ){
-      setTimeout(function(){
-        try{
-          if(typeof stopCamera === 'function') stopCamera();
-        }catch(e){}
-        limpiarTemporizadorCamara();
-        try{
-          if(typeof manaRestaurarEstadoEspera_ === 'function'){
-            manaRestaurarEstadoEspera_();
-          }
-        }catch(e){}
-        try{
-          if(typeof setResult === 'function'){
-            setResult(
-              'neutral',
-              'LISTO PARA ESCANEAR',
-              'Pulse ACTIVAR CÁMARA para iniciar una nueva marcación.'
-            );
-          }
-        }catch(e){}
-        const st = document.getElementById('status');
-        if(st){
-          st.textContent = 'Lectura cancelada. Cámara apagada. Pulse ACTIVAR CÁMARA para una nueva marcación.';
-        }
-      }, 150);
-    }
-  }, true);
-
-  // Si se detecta QR, ya no aplica el autoapagado por inactividad.
-  if(typeof handleQr === 'function'){
-    const _handleQrOriginal = handleQr;
-    handleQr = function(raw){
-      limpiarTemporizadorCamara();
-      return _handleQrOriginal.apply(this, arguments);
-    };
-  }
-
-  // Cada vez que se apague la cámara por cualquier motivo, limpiar temporizador.
-  if(typeof stopCamera === 'function'){
-    const _stopCameraOriginal = stopCamera;
-    stopCamera = function(){
-      limpiarTemporizadorCamara();
-      return _stopCameraOriginal.apply(this, arguments);
-    };
-  }
-})();
-</script>
 
 </body>
 </html>
