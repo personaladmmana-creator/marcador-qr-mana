@@ -3655,8 +3655,8 @@ function apiJsonp(params,onOk,onFail){
     if(terminado)return;
     terminado=true;
     limpiar();
-    onFail(new Error('La API no respondió en 10 segundos.'));
-  },10000);
+    onFail(new Error('La API no respondió en 25 segundos.'));
+  },25000);
 }
 
 
@@ -3898,91 +3898,6 @@ document.querySelectorAll('[data-tipo]').forEach(b=>{
 });
 
 
-function manaVerificarMarcacionTrasTimeout_(value,tipo,eventoExacto,eventoEsperado,trabajadorSnapshot){
-  const nombreSnapshot=(trabajadorSnapshot&&trabajadorSnapshot.nombre)||'';
-
-  setResult(
-    'neutral',
-    'VERIFICANDO MARCACIÓN...',
-    nombreSnapshot,
-    eventoEsperado,
-    '',
-    'La respuesta demoró. Verificando si la marcación ya quedó registrada.'
-  );
-  document.getElementById('status').textContent='Verificando marcación...';
-
-  setTimeout(()=>{
-    apiJsonp({
-      accion:'identificarQr',
-      valorQR:value,
-      dispositivo:'MARCADOR EXTERNO MANÁ | '+navigator.userAgent.slice(0,130)
-    },r=>{
-      busy=false;
-
-      if(r && r.ok && tipo==='JORNADA' && eventoExacto){
-        const siguientes=(r.opciones||[])
-          .filter(o=>o.tipo==='EVENTO')
-          .map(o=>String(o.evento||'').trim());
-
-        // Si el evento que acabamos de marcar YA NO aparece como siguiente,
-        // significa que el servidor avanzó la secuencia: la marcación sí quedó grabada.
-        const siguePendiente=siguientes.includes(String(eventoExacto||'').trim());
-
-        if(!siguePendiente){
-          const hora=new Date().toLocaleTimeString('en-US',{
-            hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
-          }).toLowerCase();
-
-          setResult(
-            'ok',
-            'MARCACIÓN REGISTRADA',
-            nombreSnapshot,
-            eventoEsperado,
-            hora,
-            [
-              (trabajadorSnapshot&&trabajadorSnapshot.codigo)||value,
-              (trabajadorSnapshot&&trabajadorSnapshot.area)||'',
-              (trabajadorSnapshot&&trabajadorSnapshot.cargo)||''
-            ].filter(Boolean).join(' · ')
-          );
-
-          document.getElementById('status').textContent='Marcación registrada.';
-          manaSonidoMarcacionRegistrada_();
-          try{navigator.vibrate&&navigator.vibrate([100,50,140]);}catch(e){}
-
-          setTimeout(()=>cancelarLecturaActual(),3300);
-          return;
-        }
-      }
-
-      // No se pudo confirmar que avanzó la secuencia.
-      setResult(
-        'bad',
-        'NO SE PUDO CONFIRMAR',
-        nombreSnapshot,
-        eventoEsperado,
-        '',
-        'No se recibió confirmación del servidor. Vuelva a escanear antes de intentar nuevamente.'
-      );
-      document.getElementById('status').textContent='No se pudo confirmar la marcación.';
-      setTimeout(()=>cancelarLecturaActual(),4200);
-
-    },err=>{
-      busy=false;
-      setResult(
-        'bad',
-        'SIN RESPUESTA DEL SISTEMA',
-        nombreSnapshot,
-        eventoEsperado,
-        '',
-        'No se pudo verificar la marcación: '+err.message
-      );
-      document.getElementById('status').textContent='No se pudo verificar la marcación.';
-      setTimeout(()=>cancelarLecturaActual(),4200);
-    });
-  },900);
-}
-
 function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
   busy=true;
   manaMostrarResultadoMarcacion_();
@@ -3997,7 +3912,7 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
     nombreSnapshot,
     eventoEsperado,
     '',
-    'Procesando marcación...'
+    'Procesando marcación. Espere la confirmación en pantalla...'
   );
   document.getElementById('status').textContent='Registrando marcación...';
 
@@ -4058,16 +3973,21 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
     setTimeout(()=>cancelarLecturaActual(),4200);
 
   },err=>{
-    // IMPORTANTE:
-    // Ya NO reenviamos la marcación automáticamente.
-    // Primero verificamos si el primer envío sí quedó guardado.
-    manaVerificarMarcacionTrasTimeout_(
-      value,
-      tipo,
-      eventoExacto,
+    busy=false;
+
+    setResult(
+      'bad',
+      'SIN RESPUESTA DEL SISTEMA',
+      nombreSnapshot,
       eventoEsperado,
-      trabajadorSnapshot
+      '',
+      'La respuesta del servidor demoró demasiado. No vuelva a pulsar la misma marcación de inmediato.'
     );
+    document.getElementById('status').textContent='No llegó respuesta del servidor.';
+
+    setTimeout(()=>{
+      cancelarLecturaActual();
+    },4500);
   });
 }
 
