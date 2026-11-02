@@ -137,45 +137,128 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
 }
 </style>
 
-<style id="mana-visual-final-v2">
-/* ==============================
-   LOGO
-   ============================== */
-.logoWrap{
-  width:132px!important;
-  height:82px!important;
-  min-width:132px!important;
-  flex:0 0 132px!important;
-  padding:3px!important;
-  overflow:hidden!important;
-  background:#fff!important;
-  border-radius:12px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
+<style id="mana-referencia-visual-final">
+/* ==========================================================
+   AJUSTE VISUAL BASADO EN LA REFERENCIA MOSTRADA AL USUARIO
+   NO MODIFICA LÓGICA QR / API / CONFIRMACIÓN / SONIDO
+   ========================================================== */
+
+/* ESTRUCTURA GENERAL */
+.app{
+  grid-template-rows:120px minmax(0,1fr) 22px!important;
 }
-.logoWrap img{
-  width:100%!important;
-  height:100%!important;
-  object-fit:contain!important;
-  object-position:center!important;
-  transform:none!important;
+header{
+  min-height:120px!important;
+  height:120px!important;
+  padding:10px 16px!important;
+  gap:22px!important;
+}
+main{
+  grid-template-columns:minmax(0,36fr) minmax(0,64fr)!important;
+  gap:10px!important;
+  padding:10px 14px 6px!important;
 }
 
-/* ==============================
-   FOTO DEL TRABAJADOR
-   Rectangular, respetando la foto
-   ============================== */
-.avatar{
-  width:156px!important;
-  height:180px!important;
-  border-radius:0!important;
-  border:2px solid #d7a867!important;
+/* LOGO Y MARCA */
+.brandArea{
+  min-width:500px!important;
+  gap:20px!important;
+}
+.logoWrap{
+  width:150px!important;
+  height:100px!important;
+  min-width:150px!important;
+  flex:0 0 150px!important;
+  padding:4px!important;
   background:#fff!important;
+  border-radius:14px!important;
   overflow:hidden!important;
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
+  box-shadow:0 5px 14px rgba(0,0,0,.20)!important;
+}
+.logoWrap img{
+  width:136px!important;
+  height:auto!important;
+  max-height:96px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  image-rendering:auto!important;
+}
+.brandText{
+  padding-left:18px!important;
+}
+.brand{
+  font-size:36px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.brandSub{
+  margin-top:8px!important;
+  font-size:11px!important;
+  letter-spacing:3.8px!important;
+  white-space:nowrap!important;
+}
+
+/* FECHA Y HORA */
+.dateTime{
+  min-width:760px!important;
+  grid-template-columns:minmax(0,1.45fr) 1px minmax(0,.78fr)!important;
+  gap:20px!important;
+  padding:12px 20px!important;
+}
+.dateTime .lbl{
+  font-size:11px!important;
+  letter-spacing:2.2px!important;
+  margin-bottom:6px!important;
+}
+.dateNow{
+  font-size:29px!important;
+  line-height:1.05!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  letter-spacing:-.2px!important;
+}
+.clock{
+  font-size:58px!important;
+  line-height:.95!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+}
+
+/* PANEL DERECHO */
+.resultPanel{
+  overflow:hidden!important;
+}
+.worker{
+  position:relative!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:12px 16px 14px!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+
+/* CABECERA DEL TRABAJADOR */
+.workerTop{
+  grid-template-columns:180px minmax(0,1fr)!important;
+  gap:24px!important;
+  align-items:center!important;
+  padding-right:170px!important;
+  margin:0 0 12px!important;
+}
+.avatar{
+  width:180px!important;
+  height:205px!important;
+  min-width:180px!important;
+  border-radius:0!important;
+  border:2px solid #5a2b18!important;
+  background:#fff!important;
+  overflow:hidden!important;
   box-shadow:none!important;
 }
 .avatar img{
@@ -183,160 +266,162 @@ footer{display:flex;align-items:center;justify-content:space-between;padding:0 1
   height:100%!important;
   object-fit:contain!important;
   object-position:center center!important;
-  background:#fff!important;
   border-radius:0!important;
+  background:#fff!important;
 }
 .placeholder{
   border-radius:0!important;
 }
-
-/* ==============================
-   APROVECHAR EL ESPACIO DEL PANEL
-   ============================== */
-.worker{
-  height:100%!important;
-  min-height:0!important;
-  overflow:hidden!important;
-  padding:10px 15px 12px!important;
-  display:flex!important;
-  flex-direction:column!important;
-}
-.workerTop{
-  grid-template-columns:156px minmax(0,1fr)!important;
-  gap:20px!important;
-  padding-right:160px!important;
-  margin-bottom:8px!important;
-  align-items:center!important;
-}
 .workerName{
-  font-size:35px!important;
+  font-size:34px!important;
   line-height:1.04!important;
-  margin-bottom:8px!important;
+  margin:0 0 10px!important;
+  text-align:center!important;
 }
 .workerMeta{
-  font-size:14px!important;
+  font-size:15px!important;
   line-height:1.35!important;
+  text-align:center!important;
 }
-.today{
-  margin:7px 0 6px!important;
-}
-.turnDetail{
-  margin:4px 0 7px!important;
-  min-height:56px!important;
-}
-.ask{
-  margin:5px 0 3px!important;
-  font-size:19px!important;
-}
-.group{
-  margin:3px 0 5px!important;
-  font-size:10px!important;
+.metaRow{
+  gap:26px!important;
 }
 
-/* Botones más altos para llenar mejor la parte inferior */
+/* DATOS DEL DÍA */
+.today{
+  margin:5px 0 8px!important;
+  gap:7px!important;
+}
+.chip{
+  padding:8px 12px!important;
+  font-size:12px!important;
+  border-radius:10px!important;
+}
+.today .chip:nth-child(3){
+  flex-basis:auto!important;
+}
+
+/* HORARIO */
+.turnDetail{
+  min-height:58px!important;
+  padding:8px 12px!important;
+  margin:0 0 9px!important;
+  border-radius:10px!important;
+}
+.turnDetail b{
+  font-size:10px!important;
+  margin-bottom:3px!important;
+}
+.turnDetail span{
+  font-size:15px!important;
+}
+
+/* PREGUNTA Y SECCIONES */
+.ask{
+  font-size:21px!important;
+  margin:5px 0 4px!important;
+}
+.group{
+  font-size:10px!important;
+  margin:3px 0 6px!important;
+}
+.noSchedule{
+  min-height:66px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:10px!important;
+  font-size:18px!important;
+  border-radius:12px!important;
+}
+
+/* BOTONES: más altos para ocupar la zona inferior */
 .grid,
 .specialGrid{
-  gap:9px!important;
+  gap:10px!important;
 }
 .specialGrid{
+  display:grid!important;
   grid-template-columns:1fr 1fr!important;
 }
 .specialGrid .otra{
   grid-column:auto!important;
 }
 .markBtn{
-  min-height:58px!important;
-  height:58px!important;
-  font-size:14px!important;
-  border-radius:10px!important;
+  min-height:68px!important;
+  height:68px!important;
+  padding:8px 12px!important;
+  font-size:18px!important;
+  line-height:1.1!important;
+  border-radius:12px!important;
 }
 .cancelBtn{
-  min-width:145px!important;
-  height:48px!important;
-  font-size:13px!important;
+  min-width:150px!important;
+  height:52px!important;
+  font-size:14px!important;
+  border-radius:11px!important;
 }
 
-/* Empuja el bloque de botones para usar mejor la altura disponible */
+/* Un poco más de separación antes del bloque de otras marcaciones */
 #jornadaGrid{
-  margin-bottom:2px!important;
-}
-.specialGrid{
-  margin-bottom:0!important;
+  margin-bottom:4px!important;
 }
 
-/* Laptop similar a la captura */
-@media (min-width:821px) and (max-height:900px){
-  .worker{
-    padding:8px 14px 10px!important;
-  }
+/* Mantener todo en una sola pantalla para la resolución mostrada */
+@media (min-width:1400px) and (max-height:950px){
   .workerTop{
-    grid-template-columns:148px minmax(0,1fr)!important;
-    gap:18px!important;
-    padding-right:150px!important;
-    margin-bottom:6px!important;
+    grid-template-columns:170px minmax(0,1fr)!important;
   }
   .avatar{
-    width:148px!important;
-    height:170px!important;
+    width:170px!important;
+    height:194px!important;
+    min-width:170px!important;
   }
   .workerName{
     font-size:32px!important;
-    margin-bottom:6px!important;
-  }
-  .workerMeta{font-size:13px!important}
-  .today{margin:5px 0 5px!important}
-  .turnDetail{
-    min-height:50px!important;
-    margin:3px 0 6px!important;
-  }
-  .ask{
-    font-size:18px!important;
-    margin:4px 0 3px!important;
-  }
-  .group{
-    margin:2px 0 4px!important;
   }
   .markBtn{
-    min-height:54px!important;
-    height:54px!important;
-    font-size:13px!important;
+    min-height:64px!important;
+    height:64px!important;
+    font-size:16px!important;
+  }
+  .noSchedule{
+    min-height:60px!important;
+    font-size:16px!important;
   }
 }
 
-/* Cabecera: mantener proporción ya aceptable */
-.dateNow{
-  font-size:28px!important;
-}
-.clock{
-  font-size:60px!important;
-}
-</style>
-
-
-<style id="mana-logo-original-nitido">
-/* Usar el logo original a tamaño nativo/aproximado: sin ampliación artificial */
-.logoWrap{
-  width:124px!important;
-  height:82px!important;
-  min-width:124px!important;
-  flex:0 0 124px!important;
-  padding:2px!important;
-  background:#fff!important;
-  border-radius:12px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  overflow:hidden!important;
-}
-.logoWrap img{
-  width:auto!important;
-  height:auto!important;
-  max-width:120px!important;
-  max-height:78px!important;
-  object-fit:contain!important;
-  object-position:center center!important;
-  image-rendering:auto!important;
-  transform:none!important;
+/* Pantallas menores: conservar proporciones sin crear scroll */
+@media (min-width:821px) and (max-width:1399px){
+  .app{grid-template-rows:108px minmax(0,1fr) 20px!important}
+  header{height:108px!important;min-height:108px!important}
+  .brandArea{min-width:420px!important}
+  .logoWrap{
+    width:125px!important;
+    height:86px!important;
+    min-width:125px!important;
+    flex-basis:125px!important;
+  }
+  .logoWrap img{width:116px!important;max-height:82px!important}
+  .brand{font-size:31px!important}
+  .brandSub{font-size:9px!important}
+  .dateTime{min-width:600px!important}
+  .dateNow{font-size:25px!important}
+  .clock{font-size:50px!important}
+  .workerTop{
+    grid-template-columns:145px minmax(0,1fr)!important;
+    gap:18px!important;
+    padding-right:145px!important;
+  }
+  .avatar{
+    width:145px!important;
+    height:165px!important;
+    min-width:145px!important;
+  }
+  .workerName{font-size:29px!important}
+  .workerMeta{font-size:13px!important}
+  .markBtn{min-height:54px!important;height:54px!important;font-size:13px!important}
+  .noSchedule{min-height:52px!important;font-size:14px!important}
 }
 </style>
 
