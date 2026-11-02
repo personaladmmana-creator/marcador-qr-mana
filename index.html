@@ -239,7 +239,6 @@ main{
   min-height:0!important;
   overflow:hidden!important;
   padding:12px 16px 14px!important;
-  display:flex!important;
   flex-direction:column!important;
 }
 
@@ -425,6 +424,25 @@ main{
 }
 </style>
 
+
+<style id="mana-estados-visibilidad-fix">
+/* Estados excluyentes del panel derecho */
+.idle,
+.worker,
+.feedback{
+  display:none!important;
+}
+.idle.show{
+  display:flex!important;
+}
+.worker.show{
+  display:flex!important;
+}
+.feedback.show{
+  display:flex!important;
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -550,8 +568,14 @@ tick(); setInterval(tick,1000);
 
 function apiUrl(){ return localStorage.getItem("mana_qr_api_url")||""; }
 function showOnly(which){
-  ["idle","worker","feedback"].forEach(id=>$(id).classList.remove("show"));
-  $(which).classList.add("show");
+  ["idle","worker","feedback"].forEach(id=>{
+    const el=$(id);
+    if(!el) return;
+    const active=(id===which);
+    el.classList.toggle("show",active);
+    el.style.display=active?"flex":"none";
+    el.setAttribute("aria-hidden",active?"false":"true");
+  });
 }
 function clearReset(){ if(resetTimer){clearTimeout(resetTimer);resetTimer=null;} }
 
@@ -569,11 +593,34 @@ function setFeedback(kind,title,name="",event="",time="",detail=""){
 
 function resetReader(message){
   clearReset();
-  requestSeq++; // invalida cualquier respuesta tardía
-  busy=false; trabajador=null; qrActual=""; pendingAction=null;
-  lastAt=Date.now(); qrVisibleNow=false; // obliga a una nueva lectura real del QR
+
+  // Invalida cualquier respuesta anterior que todavía esté viajando.
+  requestSeq++;
+
+  busy=false;
+  trabajador=null;
+  qrActual="";
+  pendingAction=null;
+  lastValue="";
+  lastAt=Date.now();
+  qrVisibleNow=false;
+
+  // Cerrar cualquier modal abierto.
+  $("confirmModal")?.classList.remove("show");
+
+  // Forzar un único estado visible.
   showOnly("idle");
-  $("status").textContent=message || (scanning?"Cámara activa. Acerque el QR del fotocheck.":"Marcador detenido.");
+
+  // Refuerzo: algunos navegadores procesan callbacks/renderizados en el mismo ciclo.
+  setTimeout(()=>{
+    if(!trabajador && !busy){
+      showOnly("idle");
+    }
+  },0);
+
+  $("status").textContent=message || (scanning
+    ?"Cámara activa. Acerque el QR del fotocheck."
+    :"Marcador detenido.");
 }
 
 function scheduleReset(ms=2600){ clearReset(); resetTimer=setTimeout(()=>resetReader(),ms); }
@@ -784,6 +831,7 @@ function hora12(texto){
 }
 
 function mostrarTrabajador(t){
+  if(!t || !qrActual || !trabajador) return;
   $("workerName").textContent=(t.nombre||"").trim();
   $("workerMeta").innerHTML=
     '<div class="metaRow"><span><b>Código</b> '+(t.codigo||qrActual)+'</span><span><b>DNI</b> '+(t.dni||"")+'</span></div>'+
@@ -946,7 +994,9 @@ function registrar(tipo,observacion,eventoExacto,textoElegido){
   });
 }
 
-$("btnCancelWorker").onclick=()=>resetReader("Lectura cancelada. Puede escanear otro fotocheck.");
+$("btnCancelWorker").onclick=()=>{
+  resetReader("Lectura cancelada. Puede escanear otro fotocheck.");
+};
 $("btnStart").onclick=startCamera;
 $("btnStop").onclick=()=>stopCamera(true);
 
@@ -966,6 +1016,11 @@ document.addEventListener("pointerdown",function manaUnlockOnce(){
   unlockAudio();
   document.removeEventListener("pointerdown",manaUnlockOnce);
 },{passive:true});
+
+
+document.addEventListener("DOMContentLoaded",()=>{
+  showOnly("idle");
+});
 
 window.addEventListener("beforeunload",()=>stopCamera(false));
 setTimeout(()=>{ if(apiUrl()) startCamera(); else showConfig(); },450);
