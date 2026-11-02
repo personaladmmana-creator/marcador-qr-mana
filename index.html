@@ -4089,23 +4089,43 @@ function identificarTrabajador(value){
 }
 
 
-function cancelarLecturaActual(){
-  detenerAutoResetTrabajador();
+
+function manaFinalizarSesionMarcador_(mensaje){
+  try{ detenerAutoResetTrabajador(); }catch(e){}
+
   trabajadorActual=null;
   qrActual='';
   busy=false;
   lastValue='';
   lastAt=0;
-  qrVisibleNow=false;
+  if(typeof qrVisibleNow!=='undefined') qrVisibleNow=false;
 
-  if(window.manaSetWorkerMode) manaSetWorkerMode(false);
+  try{
+    if(window.manaSetWorkerMode) manaSetWorkerMode(false);
+  }catch(e){}
 
-  manaRestaurarEstadoEspera_();
+  try{ manaRestaurarEstadoEspera_(); }catch(e){}
 
-  setResult('neutral','LISTO PARA ESCANEAR','Acerque el QR del fotocheck.');
+  try{
+    setResult(
+      'neutral',
+      'LISTO PARA ESCANEAR',
+      'Pulse ACTIVAR CÁMARA para iniciar una nueva marcación.'
+    );
+  }catch(e){}
 
-  document.getElementById('status').textContent=
-    scanning ? 'Cámara activa. Acerque el QR del fotocheck.' : 'Marcador detenido.';
+  try{ stopCamera(); }catch(e){}
+
+  const st=document.getElementById('status');
+  if(st){
+    st.textContent=mensaje || 'Cámara apagada. Pulse ACTIVAR CÁMARA para una nueva marcación.';
+  }
+}
+
+function cancelarLecturaActual(){
+  manaFinalizarSesionMarcador_(
+    'Lectura cancelada. Cámara apagada. Pulse ACTIVAR CÁMARA para una nueva marcación.'
+  );
 }
 
 function manaTextoEventoConfirm_(evento){
@@ -4249,7 +4269,11 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
       manaSonidoMarcacionRegistrada_();
       try{navigator.vibrate&&navigator.vibrate([100,50,140]);}catch(e){}
 
-      setTimeout(()=>cancelarLecturaActual(),3300);
+      setTimeout(()=>{
+        manaFinalizarSesionMarcador_(
+          'Marcación finalizada. Cámara apagada. Pulse ACTIVAR CÁMARA para una nueva marcación.'
+        );
+      },3300);
       return;
     }
 
@@ -4265,7 +4289,11 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
     );
     document.getElementById('status').textContent='No se registró la marcación.';
     try{navigator.vibrate&&navigator.vibrate([300]);}catch(e){}
-    setTimeout(()=>cancelarLecturaActual(),4200);
+    setTimeout(()=>{
+        manaFinalizarSesionMarcador_(
+          'Proceso finalizado. Cámara apagada. Pulse ACTIVAR CÁMARA para intentar nuevamente.'
+        );
+      },4200);
 
   },err=>{
     busy=false;
@@ -4281,7 +4309,9 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
     document.getElementById('status').textContent='No llegó respuesta del servidor.';
 
     setTimeout(()=>{
-      cancelarLecturaActual();
+      manaFinalizarSesionMarcador_(
+        'Proceso finalizado. Cámara apagada. Pulse ACTIVAR CÁMARA para intentar nuevamente.'
+      );
     },4500);
   });
 }
