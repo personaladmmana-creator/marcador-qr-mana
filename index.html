@@ -3026,6 +3026,76 @@ video{
 }
 </style>
 
+
+<style id="mana-resultado-completo-final">
+#result.post-mark-result .resultHeader{
+  display:none!important;
+}
+#result.post-mark-result #idleState{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  padding:24px!important;
+}
+#result.post-mark-result #idleState .idleIcon{
+  display:none!important;
+}
+#result.post-mark-result #idleState #icon{
+  display:block!important;
+  font-size:78px!important;
+  line-height:1!important;
+  margin:0 0 12px!important;
+}
+#result.post-mark-result.ok #idleState #icon{
+  color:#2f7d4c!important;
+}
+#result.post-mark-result.bad #idleState #icon{
+  color:#a83e32!important;
+}
+#result.post-mark-result #idleState .title{
+  display:block!important;
+  font-size:31px!important;
+  line-height:1.05!important;
+  font-weight:950!important;
+  margin:0!important;
+}
+#result.post-mark-result #idleState .name{
+  display:block!important;
+  margin-top:9px!important;
+  font-size:20px!important;
+  font-weight:850!important;
+}
+#result.post-mark-result #idleState .event{
+  display:block!important;
+  margin-top:10px!important;
+  font-size:27px!important;
+  line-height:1.08!important;
+  font-weight:950!important;
+  color:#63351d!important;
+}
+#result.post-mark-result #idleState .time{
+  display:block!important;
+  margin-top:10px!important;
+  font-size:44px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  color:#37241a!important;
+}
+#result.post-mark-result #idleState .detail{
+  display:block!important;
+  margin-top:10px!important;
+  font-size:13px!important;
+  line-height:1.35!important;
+  color:#706158!important;
+}
+#result.post-mark-result #idleState .howTo{
+  display:none!important;
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3218,7 +3288,36 @@ document.getElementById('btnSave').onclick=()=>{
 };
 if(!apiUrl()) setTimeout(showConfig,300);
 
+function manaSonidoMarcacionRegistrada_(){
+  try{
+    const A=window.AudioContext||window.webkitAudioContext;
+    if(!A) return;
+    if(!window.__manaOkAudioCtx) window.__manaOkAudioCtx=new A();
+    const a=window.__manaOkAudioCtx;
+
+    const sonar=()=>{
+      const t=a.currentTime;
+      [880,1175].forEach((freq,i)=>{
+        const o=a.createOscillator();
+        const g=a.createGain();
+        const ini=t+(i*0.11);
+        o.type='sine';
+        o.frequency.setValueAtTime(freq,ini);
+        g.gain.setValueAtTime(0.0001,ini);
+        g.gain.exponentialRampToValueAtTime(0.16,ini+0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001,ini+0.10);
+        o.connect(g); g.connect(a.destination);
+        o.start(ini); o.stop(ini+0.11);
+      });
+    };
+
+    if(a.state==='suspended') a.resume().then(sonar).catch(()=>{});
+    else sonar();
+  }catch(e){}
+}
+
 function manaMostrarResultadoMarcacion_(){
+  result.classList.add('post-mark-result');
   const wb=document.getElementById('workerBox');
   if(wb){
     wb.classList.remove('show','programado');
@@ -3238,6 +3337,7 @@ function manaMostrarResultadoMarcacion_(){
 }
 
 function manaRestaurarEstadoEspera_(){
+  result.classList.remove('post-mark-result');
   const wb=document.getElementById('workerBox');
   if(wb){
     wb.classList.remove('show','programado');
@@ -3798,11 +3898,24 @@ document.querySelectorAll('[data-tipo]').forEach(b=>{
 });
 
 
-function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
+function submitMark(value,tipo='JORNADA',observacion='',eventoExacto='',intento=0){
   busy=true;
   manaMostrarResultadoMarcacion_();
-  setResult('neutral','REGISTRANDO...',trabajadorActual?trabajadorActual.nombre:value,eventoExacto||tipo,'','');
-  document.getElementById('status').textContent='Registrando marcación...';
+
+  const trabajadorSnapshot=trabajadorActual ? Object.assign({},trabajadorActual) : null;
+  const nombreSnapshot=(trabajadorSnapshot&&trabajadorSnapshot.nombre)||value;
+  const eventoEsperado=manaTextoEventoConfirm_(eventoExacto||tipo);
+
+  setResult(
+    'neutral',
+    intento>0 ? 'REINTENTANDO...' : 'REGISTRANDO...',
+    nombreSnapshot,
+    eventoEsperado,
+    '',
+    intento>0 ? 'Reintentando automáticamente la comunicación con el sistema.' : 'Procesando marcación...'
+  );
+  document.getElementById('status').textContent=
+    intento>0 ? 'Reintentando marcación...' : 'Registrando marcación...';
 
   apiJsonp({
     accion:'marcarQr',
@@ -3814,57 +3927,97 @@ function submitMark(value,tipo='JORNADA',observacion='',eventoExacto=''){
   },r=>{
     busy=false;
 
-    const nombre=(r&&r.nombre)||(trabajadorActual&&trabajadorActual.nombre)||'';
-    const codigo=(r&&r.codigo)||(trabajadorActual&&trabajadorActual.codigo)||value;
-    const area=(r&&r.area)||(trabajadorActual&&trabajadorActual.area)||'';
-    const cargo=(r&&r.cargo)||(trabajadorActual&&trabajadorActual.cargo)||'';
+    const nombre=(r&&r.nombre)||(trabajadorSnapshot&&trabajadorSnapshot.nombre)||'';
+    const codigo=(r&&r.codigo)||(trabajadorSnapshot&&trabajadorSnapshot.codigo)||value;
+    const area=(r&&r.area)||(trabajadorSnapshot&&trabajadorSnapshot.area)||'';
+    const cargo=(r&&r.cargo)||(trabajadorSnapshot&&trabajadorSnapshot.cargo)||'';
+    const msg=((r&&(r.error||r.mensaje))||'').trim();
 
-    if(r && r.ok){
-      const evento=r.eventoTexto||r.evento||'MARCACIÓN';
-      const hora=r.hora||new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).toLowerCase();
-      const tipoTxt=r.tipoGeneralTexto || (tipo==='JORNADA'?'JORNADA LABORAL':tipo);
-      const estado=r.estado ? (' · '+r.estado) : '';
+    // Si el servidor dice que ya la recibió, no obligamos al trabajador a insistir.
+    const yaRecibida=/marcaci[oó]n ya recibida|ya fue registrada|ya registrada/i.test(msg);
+
+    if((r && r.ok) || yaRecibida){
+      const evento=(r&&r.eventoTexto)||(r&&r.evento)||eventoEsperado||'MARCACIÓN';
+      const hora=(r&&r.hora) ||
+        new Date().toLocaleTimeString('en-US',{
+          hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
+        }).toLowerCase();
 
       setResult(
-        r.estado==='PENDIENTE DE VALIDACIÓN'?'neutral':'ok',
-        r.estado==='PENDIENTE DE VALIDACIÓN'?'MARCACIÓN REGISTRADA · PENDIENTE':'MARCACIÓN REGISTRADA',
+        'ok',
+        yaRecibida ? 'MARCACIÓN YA REGISTRADA' : 'MARCACIÓN REGISTRADA',
         nombre,
-        tipoTxt+' · '+evento,
+        evento,
         hora,
-        codigo+' · '+area+' · '+cargo+estado
+        [codigo,area,cargo].filter(Boolean).join(' · ')
       );
-      document.getElementById('status').textContent='Marcación registrada.';try{navigator.vibrate&&navigator.vibrate([120,60,120]);}catch(e){}
+
+      document.getElementById('status').textContent=
+        yaRecibida ? 'La marcación ya estaba registrada.' : 'Marcación registrada.';
+
+      manaSonidoMarcacionRegistrada_();
+      try{navigator.vibrate&&navigator.vibrate([100,50,140]);}catch(e){}
+
+      setTimeout(()=>{
+        cancelarLecturaActual();
+      },3300);
+
     }else{
       setResult(
         'bad',
         'NO SE REGISTRÓ',
         nombre,
-        codigo+' · '+area,
-        new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).toLowerCase(),
-        (r&&(r.error||r.mensaje))||'Error desconocido'
+        eventoEsperado,
+        new Date().toLocaleTimeString('en-US',{
+          hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
+        }).toLowerCase(),
+        msg || 'El sistema rechazó la marcación.'
       );
       document.getElementById('status').textContent='No se registró la marcación.';
       try{navigator.vibrate&&navigator.vibrate([300]);}catch(e){}
+
+      // El mensaje queda visible un poco más para que se pueda leer.
+      setTimeout(()=>{
+        cancelarLecturaActual();
+      },4200);
     }
 
-    setTimeout(()=>{
-      cancelarLecturaActual();
-    },3200);
   },err=>{
     busy=false;
-    manaMostrarResultadoMarcacion_();
+
+    // Un solo reintento automático ante error de conexión/timeout.
+    if(intento<1){
+      setResult(
+        'neutral',
+        'REINTENTANDO...',
+        nombreSnapshot,
+        eventoEsperado,
+        '',
+        'La conexión demoró. El sistema hará un segundo intento automáticamente.'
+      );
+      document.getElementById('status').textContent='Reintentando automáticamente...';
+
+      setTimeout(()=>{
+        submitMark(value,tipo,observacion,eventoExacto,intento+1);
+      },650);
+      return;
+    }
+
     setResult(
       'bad',
       'SIN RESPUESTA DEL SISTEMA',
-      trabajadorActual?trabajadorActual.nombre:'',
-      value,
+      nombreSnapshot,
+      eventoEsperado,
       '',
       err.message
     );
     document.getElementById('status').textContent='No llegó respuesta del servidor.';
+
+    setTimeout(()=>{
+      cancelarLecturaActual();
+    },4200);
   });
 }
-
 
 
 document.getElementById('btnStart').onclick=startCamera;
